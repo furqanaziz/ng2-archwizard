@@ -8,6 +8,7 @@ import {WizardStepComponent} from '../components/wizard-step.component';
 import {isStepOffset, StepOffset} from '../util/StepOffset';
 import {isNumber, isString} from 'util';
 import {WizardStep} from '../util/WizardStep';
+import {MovingDirection} from '../util/MovingDirection';
 
 /**
  * The `goToStep` directive can be used to navigate to a given step.
@@ -94,10 +95,19 @@ export class GoToStepDirective {
    * After this method is called the wizard will try to transition to the `destinationStep`
    */
   @HostListener('click', ['$event']) onClick(): void {
-    if (this.wizard.canGoToStep(this.destinationStep)) {
-      this.finalize.emit();
+    this.goToClosestValidStep(this.wizard.currentStepIndex, this.destinationStep, true);
+    this.goToClosestValidStep(this.destinationStep, this.wizard.currentStepIndex, false);
+  }
 
-      this.wizard.goToStep(this.destinationStep);
+  goToClosestValidStep(min, max, asc) {
+    for (let i = asc ? min : max; (asc && i <= max) || (!asc && i >= min && i >= 0);) {
+      let direction: MovingDirection = this.wizard.getMovingDirection(i);
+      this.finalize.emit();
+      this.wizard.goToStep(i);
+      if (!this.wizard.canGoToStep(i) || !this.wizard.canExitStep(this.wizard.allSteps[i], direction)) {
+        break;
+      }
+      i = asc ? i + 1 : i - 1;
     }
   }
 }
